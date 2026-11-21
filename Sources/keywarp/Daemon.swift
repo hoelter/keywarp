@@ -1,0 +1,50 @@
+import AppKit
+import KeywarpCore
+
+/// The background process: keeps the registered Shortcuts in step with the config file.
+@MainActor final class Daemon {
+    private let shortcuts = ShortcutRegistry(onPress: Summoner.summon)
+    private var watcher: ConfigWatcher?
+
+    func start() {
+        do {
+            try FileManager.default.createDirectory(at: ConfigFile.directory, withIntermediateDirectories: true)
+        } catch {
+            logger.error("cannot create \(ConfigFile.directory.path, privacy: .public): \(error.localizedDescription, privacy: .public)")
+        }
+        reload()
+        let watcher = ConfigWatcher { [weak self] in self?.reload() }
+        watcher.start()
+        self.watcher = watcher
+    }
+
+    /// Only a valid file is ever applied. Anything else keeps the current Shortcuts
+    /// (none at startup), so a typo or a delete-then-write save can't drop them all.
+    private func reload() {
+        switch ConfigFile.load() {
+        case .valid(let config):
+            apply(config)
+            return
+        case .missing:
+            logger.notice("no config at \(ConfigFile.url.path, privacy: .public)")
+        case .unreadable(let error):
+            logger.error("cannot read \(ConfigFile.url.path, privacy: .public): \(error.localizedDescription, privacy: .public)")
+        case .invalid(let error):
+            for problem in error.problems {
+                logger.error("config rejected: \(problem, privacy: .public)")
+            }
+        }
+        logger.notice("keeping \(self.shortcuts.count) current bindings")
+    }
+
+    private func apply(_ config: Config) {
+        let failures = shortcuts.replace(with: config.bindings)
+        for (binding, status) in failures {
+            logger.error("cannot register \(binding.shortcut, privacy: .public) for \(binding.target, privacy: .public) (status \(status)); another app may hold it")
+        }
+        for binding in config.bindings where !ConfigFile.isInstalled(binding.target) {
+            logger.error("\(binding.shortcut, privacy: .public): \(binding.target, privacy: .public) is not installed")
+        }
+        logger.notice("loaded \(self.shortcuts.count) bindings")
+    }
+}

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleIdentifier</key>
+	<string>io.github.hoelter.keywarp</string>
+	<key>CFBundleName</key>
+	<string>Keywarp</string>
+	<key>CFBundleExecutable</key>
+	<string>keywarp</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>__VERSION__</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>14.0</string>
+	<!-- No Dock icon, no menu bar. -->
+	<key>LSUIElement</key>
+	<true/>
+	<!-- Keep App Nap from delaying Shortcut presses; keywarp has no timers, so this costs nothing at idle. -->
+	<key>NSAppSleepDisabled</key>
+	<true/>
+</dict>
+</plist>
