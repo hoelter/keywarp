@@ -9,7 +9,8 @@ import AppKit
     /// behaviour (unhide, restore a minimized window, reopen a window if none).
     static func summon(_ target: String) {
         let workspace = NSWorkspace.shared
-        guard workspace.frontmostApplication?.bundleIdentifier != target else { return }
+        // Bundle identifiers are case-insensitive.
+        if workspace.frontmostApplication?.bundleIdentifier?.caseInsensitiveCompare(target) == .orderedSame { return }
 
         // Prefer the running copy so a second installed copy is never launched alongside it.
         let running = NSRunningApplication.runningApplications(withBundleIdentifier: target).first

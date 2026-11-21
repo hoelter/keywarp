@@ -4,11 +4,18 @@ import KeywarpCore
 /// Registers Shortcuts with RegisterEventHotKey, which needs no Accessibility or
 /// Input Monitoring permission, and reports presses by Target bundle identifier.
 @MainActor final class ShortcutRegistry {
-    private let onPress: @MainActor (String) -> Void
-    private var registered: [EventHotKeyRef] = []
-    private var targets: [UInt32: String] = [:]
+    private struct Registration {
+        let ref: EventHotKeyRef
+        let id: UInt32
+        var target: String
+    }
 
-    var count: Int { registered.count }
+    private let onPress: @MainActor (String) -> Void
+    private var registrations: [Shortcut: Registration] = [:]
+    // Starts at 1 so a zeroed EventHotKeyID can never match a Registration.
+    private var nextID: UInt32 = 1
+
+    var count: Int { registrations.count }
 
     init(onPress: @escaping @MainActor (String) -> Void) {
         self.onPress = onPress
@@ -28,18 +35,26 @@ import KeywarpCore
         precondition(status == noErr, "InstallEventHandler failed: \(status)")
     }
 
-    /// Replaces every registered Shortcut. Returns the Bindings that failed to
-    /// register, typically because another app already holds the Shortcut.
+    /// Makes the registered Shortcuts match `bindings`. A Shortcut that stays bound keeps
+    /// its registration and only changes Target, so an unrelated edit never releases it
+    /// for another app to take. Returns the Bindings that failed to register, typically
+    /// because another app already holds the Shortcut.
     func replace(with bindings: [Binding]) -> [(binding: Binding, status: OSStatus)] {
-        for ref in registered {
-            let status = UnregisterEventHotKey(ref)
+        let wanted = Set(bindings.map(\.shortcut))
+        for (shortcut, registration) in registrations where !wanted.contains(shortcut) {
+            let status = UnregisterEventHotKey(registration.ref)
             if status != noErr { logger.error("UnregisterEventHotKey failed: \(status)") }
+            registrations[shortcut] = nil
         }
-        registered = []
-        targets = [:]
+
         var failures: [(binding: Binding, status: OSStatus)] = []
-        // IDs start at 1 so a zeroed EventHotKeyID can never match a Binding.
-        for (id, binding) in zip(UInt32(1)..., bindings) {
+        for binding in bindings {
+            if registrations[binding.shortcut] != nil {
+                registrations[binding.shortcut]!.target = binding.target
+                continue
+            }
+            let id = nextID
+            nextID += 1
             var ref: EventHotKeyRef?
             // Exclusive, so a Shortcut another app already holds fails loudly instead of being shared.
             let status = RegisterEventHotKey(binding.shortcut.keyCode, Self.carbonModifiers(binding.shortcut.modifiers),
@@ -49,15 +64,14 @@ import KeywarpCore
                 failures.append((binding, status))
                 continue
             }
-            registered.append(ref)
-            targets[id] = binding.target
+            registrations[binding.shortcut] = Registration(ref: ref, id: id, target: binding.target)
         }
         return failures
     }
 
     private func pressed(_ id: UInt32) {
-        guard let target = targets[id] else { return }
-        onPress(target)
+        guard let registration = registrations.values.first(where: { $0.id == id }) else { return }
+        onPress(registration.target)
     }
 
     nonisolated private static let signature: OSType = 0x4B57_5250  // "KWRP"

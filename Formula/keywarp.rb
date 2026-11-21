@@ -11,7 +11,9 @@ class Keywarp < Formula
   depends_on macos: :sonoma
 
   def install
-    system "make", "bundle", "VERSION=#{version}", "SWIFT_BUILD_FLAGS=--disable-sandbox"
+    # HEAD builds have no release number, and the bundle version must be X.Y.Z.
+    bundle_version = build.head? ? "0.0.0" : version.to_s
+    system "make", "bundle", "VERSION=#{bundle_version}", "SWIFT_BUILD_FLAGS=--disable-sandbox"
     prefix.install "build/Keywarp.app"
     bin.install_symlink prefix/"Keywarp.app/Contents/MacOS/keywarp"
   end
@@ -23,6 +25,6 @@ class Keywarp < Formula
   end
 
   test do
-    assert_match version.to_s, shell_output("#{bin}/keywarp --version")
+    assert_match(/^\d+\.\d+\.\d+$/, shell_output("#{bin}/keywarp --version"))
   end
 end

@@ -13,7 +13,7 @@ Requires macOS 14+ on Apple Silicon, with Homebrew and Xcode Command Line Tools 
 
 ```sh
 brew tap hoelter/keywarp https://github.com/hoelter/keywarp
-brew install keywarp
+brew install hoelter/keywarp/keywarp
 brew services start keywarp
 ```
 
@@ -45,7 +45,7 @@ keywarp reloads the file as soon as you save it. Run `keywarp check` to validate
 
 A shortcut belongs to keywarp in every app, so `cmd+1` no longer switches tabs anywhere.
 
-If the file has any problem, including an unknown key, keywarp rejects all of it and keeps the shortcuts it already has. A binding whose app isn't installed on this Mac is logged and otherwise ignored, so one config works across machines.
+If the file has any problem, including an unknown key, keywarp rejects all of it and keeps the shortcuts it already has. A binding whose app isn't installed on this Mac is logged and left unbound, so one config works across machines.
 
 ## Logs
 

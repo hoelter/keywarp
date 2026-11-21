@@ -7,6 +7,17 @@ import Testing
         try Config(parsing: Data(json.utf8))
     }
 
+    /// The problems a rejected file reports; empty if it was accepted.
+    /// Catches explicitly because #expect(throws:) only returns the error from Swift 6.1.
+    private func problems(_ json: String) -> [ConfigProblem] {
+        do {
+            _ = try parse(json)
+            return []
+        } catch {
+            return error.problems
+        }
+    }
+
     @Test func parsesBindings() throws {
         let config = try parse("""
             {"bindings": [
@@ -31,36 +42,34 @@ import Testing
         #"{"bindings": [], "version": 1}"#,
     ])
     func rejectsMalformedFile(json: String) {
-        let error = #expect(throws: ConfigError.self) { try parse(json) }
-        guard case .malformed = error?.problems.first else {
-            Issue.record("expected .malformed, got \(String(describing: error))")
+        let problems = problems(json)
+        guard problems.count == 1, case .malformed = problems[0] else {
+            Issue.record("expected one .malformed problem, got \(problems)")
             return
         }
-        #expect(error?.problems.count == 1)
     }
 
     @Test func namesTheUnknownKeyAndWhereItIs() {
-        let error = #expect(throws: ConfigError.self) {
-            try parse(#"{"bindings": [{"shortcut": "cmd+1", "app": "com.apple.Safari", "name": "Safari"}]}"#)
-        }
-        #expect(error?.problems.map(\.description) == [#"unknown key "name" at bindings[0]"#])
+        let problems = problems(#"{"bindings": [{"shortcut": "cmd+1", "app": "com.apple.Safari", "name": "Safari"}]}"#)
+        #expect(problems.map(\.description) == [#"unknown key "name" at bindings[0]"#])
     }
 
     @Test func reportsEveryInvalidBinding() throws {
-        let error = #expect(throws: ConfigError.self) {
-            try parse("""
-                {"bindings": [
-                  {"shortcut": "opt+cmd+1", "app": "com.apple.Safari"},
-                  {"shortcut": "alt+2", "app": "com.mitchellh.ghostty"},
-                  {"shortcut": "cmd+3", "app": ""},
-                  {"shortcut": "cmd+opt+1", "app": "com.spotify.client"}
-                ]}
-                """)
-        }
-        #expect(error?.problems == [
+        let problems = problems("""
+            {"bindings": [
+              {"shortcut": "opt+cmd+1", "app": "com.apple.Safari"},
+              {"shortcut": "alt+2", "app": "com.mitchellh.ghostty"},
+              {"shortcut": "cmd+3", "app": ""},
+              {"shortcut": "cmd+opt+1", "app": "com.spotify.client"},
+              {"shortcut": "1", "app": "com.apple.Safari "}
+            ]}
+            """)
+        #expect(problems == [
             .invalidShortcut(index: 1, .unknownModifier("alt", suggestion: "opt")),
-            .emptyTarget(index: 2),
+            .invalidTarget(index: 2, ""),
             .duplicateShortcut(index: 3, firstIndex: 0, try Shortcut(parsing: "cmd+opt+1")),
+            .invalidShortcut(index: 4, .missingModifier),
+            .invalidTarget(index: 4, "com.apple.Safari "),
         ])
     }
 }

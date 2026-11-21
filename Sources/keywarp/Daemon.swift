@@ -12,10 +12,11 @@ import KeywarpCore
         } catch {
             logger.error("cannot create \(ConfigFile.directory.path, privacy: .public): \(error.localizedDescription, privacy: .public)")
         }
-        reload()
+        // Watch before the first load so a save in between isn't missed.
         let watcher = ConfigWatcher { [weak self] in self?.reload() }
         watcher.start()
         self.watcher = watcher
+        reload()
     }
 
     /// Only a valid file is ever applied. Anything else keeps the current Shortcuts
@@ -38,12 +39,18 @@ import KeywarpCore
     }
 
     private func apply(_ config: Config) {
-        let failures = shortcuts.replace(with: config.bindings)
+        // A Binding whose Target isn't installed leaves its Shortcut free for other apps.
+        var installed: [Binding] = []
+        for binding in config.bindings {
+            if ConfigFile.isInstalled(binding.target) {
+                installed.append(binding)
+            } else {
+                logger.error("\(binding.shortcut, privacy: .public): \(binding.target, privacy: .public) is not installed; Shortcut left unbound")
+            }
+        }
+        let failures = shortcuts.replace(with: installed)
         for (binding, status) in failures {
             logger.error("cannot register \(binding.shortcut, privacy: .public) for \(binding.target, privacy: .public) (status \(status)); another app may hold it")
-        }
-        for binding in config.bindings where !ConfigFile.isInstalled(binding.target) {
-            logger.error("\(binding.shortcut, privacy: .public): \(binding.target, privacy: .public) is not installed")
         }
         logger.notice("loaded \(self.shortcuts.count) bindings")
     }

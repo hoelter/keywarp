@@ -29,17 +29,18 @@ public struct Config: Equatable, Sendable {
         var problems: [ConfigProblem] = []
         var firstIndexByShortcut: [Shortcut: Int] = [:]
         for (index, entry) in file.bindings.enumerated() {
-            let shortcut: Shortcut
+            let shortcut: Shortcut?
             do {
                 shortcut = try Shortcut(parsing: entry.shortcut)
             } catch {
                 problems.append(.invalidShortcut(index: index, error))
-                continue
+                shortcut = nil
             }
-            guard !entry.app.isEmpty else {
-                problems.append(.emptyTarget(index: index))
-                continue
+            let targetIsValid = Self.isValidBundleIdentifier(entry.app)
+            if !targetIsValid {
+                problems.append(.invalidTarget(index: index, entry.app))
             }
+            guard let shortcut, targetIsValid else { continue }
             if let firstIndex = firstIndexByShortcut[shortcut] {
                 problems.append(.duplicateShortcut(index: index, firstIndex: firstIndex, shortcut))
                 continue
@@ -70,6 +71,13 @@ public struct Config: Equatable, Sendable {
                 shortcut = try container.decode(String.self, forKey: .shortcut)
                 app = try container.decode(String.self, forKey: .app)
             }
+        }
+    }
+
+    /// Apple allows only ASCII letters, digits, hyphens and periods in a bundle identifier.
+    private static func isValidBundleIdentifier(_ text: String) -> Bool {
+        !text.isEmpty && text.unicodeScalars.allSatisfy {
+            $0.isASCII && (CharacterSet.alphanumerics.contains($0) || $0 == "-" || $0 == ".")
         }
     }
 
@@ -123,7 +131,7 @@ public struct ConfigError: Error, Equatable, Sendable {
 public enum ConfigProblem: Equatable, Sendable, CustomStringConvertible {
     case malformed(String)
     case invalidShortcut(index: Int, ShortcutError)
-    case emptyTarget(index: Int)
+    case invalidTarget(index: Int, String)
     case duplicateShortcut(index: Int, firstIndex: Int, Shortcut)
 
     public var description: String {
@@ -132,8 +140,8 @@ public enum ConfigProblem: Equatable, Sendable, CustomStringConvertible {
             reason
         case .invalidShortcut(let index, let error):
             "bindings[\(index)]: \(error)"
-        case .emptyTarget(let index):
-            "bindings[\(index)]: \"app\" is empty"
+        case .invalidTarget(let index, let target):
+            "bindings[\(index)]: \"app\" must be a bundle identifier like com.apple.Safari, got \"\(target)\""
         case .duplicateShortcut(let index, let firstIndex, let shortcut):
             "bindings[\(index)]: \(shortcut) is already bound by bindings[\(firstIndex)]"
         }
