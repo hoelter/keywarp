@@ -3,7 +3,7 @@ class Keywarp < Formula
   homepage "https://github.com/hoelter/keywarp"
   # url and sha256 are rewritten by scripts/release.sh.
   url "https://github.com/hoelter/keywarp/archive/refs/tags/v0.1.0.tar.gz"
-  sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+  sha256 "cf5045d9414a98ce2ddd504bcf16224e07b1988a88d98a975335a0f192828879"
   license "MIT"
   head "https://github.com/hoelter/keywarp.git", branch: "main"
 
