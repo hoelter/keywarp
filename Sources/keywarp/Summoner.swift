@@ -13,8 +13,8 @@ import AppKit
         if let frontmost = workspace.frontmostApplication,
            frontmost.bundleIdentifier?.caseInsensitiveCompare(target) == .orderedSame {
             // Hiding, like ⌘H, lets macOS bring forward another app, usually the previous one.
-            // hide() returning true only means the request was sent.
-            if !frontmost.hide() { logger.error("dismissing \(target, privacy: .public) was refused") }
+            // The result is ignored: on macOS 26 hide() returns false even when the app hides.
+            _ = frontmost.hide()
             return
         }
 

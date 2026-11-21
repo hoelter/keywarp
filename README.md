@@ -50,7 +50,8 @@ If the file has any problem, including an unknown key, keywarp rejects all of it
 ## Logs
 
 ```sh
-log stream --predicate 'subsystem == "io.github.hoelter.keywarp"'
+# The full path, because zsh has its own `log` builtin.
+/usr/bin/log stream --predicate 'subsystem == "io.github.hoelter.keywarp"'
 ```
 
 ## Uninstall
