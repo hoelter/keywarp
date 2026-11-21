@@ -37,8 +37,7 @@ import KeywarpCore
 
     /// Makes the registered Shortcuts match `bindings`. A Shortcut that stays bound keeps
     /// its registration and only changes Target, so an unrelated edit never releases it
-    /// for another app to take. Returns the Bindings that failed to register, typically
-    /// because another app already holds the Shortcut.
+    /// for another app to take. Returns the Bindings that failed to register.
     func replace(with bindings: [Binding]) -> [(binding: Binding, status: OSStatus)] {
         let wanted = Set(bindings.map(\.shortcut))
         for (shortcut, registration) in registrations where !wanted.contains(shortcut) {
@@ -56,7 +55,8 @@ import KeywarpCore
             let id = nextID
             nextID += 1
             var ref: EventHotKeyRef?
-            // Exclusive, so a Shortcut another app already holds fails loudly instead of being shared.
+            // Exclusive in case the system enforces it. It does not detect a Shortcut another app
+            // already uses: registering Raycast's ⌘1 hotkey succeeds while Raycast holds it.
             let status = RegisterEventHotKey(binding.shortcut.keyCode, Self.carbonModifiers(binding.shortcut.modifiers),
                                              EventHotKeyID(signature: Self.signature, id: id),
                                              GetApplicationEventTarget(), OptionBits(kEventHotKeyExclusive), &ref)

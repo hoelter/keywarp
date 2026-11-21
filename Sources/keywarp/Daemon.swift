@@ -3,7 +3,7 @@ import KeywarpCore
 
 /// The background process: keeps the registered Shortcuts in step with the config file.
 @MainActor final class Daemon {
-    private let shortcuts = ShortcutRegistry(onPress: Summoner.summon)
+    private let shortcuts = ShortcutRegistry(onPress: Summoner.summonOrDismiss)
     private var watcher: ConfigWatcher?
 
     func start() {
@@ -50,7 +50,7 @@ import KeywarpCore
         }
         let failures = shortcuts.replace(with: installed)
         for (binding, status) in failures {
-            logger.error("cannot register \(binding.shortcut, privacy: .public) for \(binding.target, privacy: .public) (status \(status)); another app may hold it")
+            logger.error("cannot register \(binding.shortcut, privacy: .public) for \(binding.target, privacy: .public) (status \(status))")
         }
         logger.notice("loaded \(self.shortcuts.count) bindings")
     }

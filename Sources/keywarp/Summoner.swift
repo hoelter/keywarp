@@ -1,16 +1,21 @@
 import AppKit
 
 @MainActor enum Summoner {
-    /// Brings the Target to the front as a Dock-icon click would, launching it if needed.
+    /// Summons the Target, or Dismisses it if it's already frontmost.
     ///
     /// Uses LaunchServices (openApplication) even for running apps: since macOS 14,
     /// NSRunningApplication.activate() from a background app is only a request the
     /// system may silently ignore, and openApplication also gives Dock-click
     /// behaviour (unhide, restore a minimized window, reopen a window if none).
-    static func summon(_ target: String) {
+    static func summonOrDismiss(_ target: String) {
         let workspace = NSWorkspace.shared
         // Bundle identifiers are case-insensitive.
-        if workspace.frontmostApplication?.bundleIdentifier?.caseInsensitiveCompare(target) == .orderedSame { return }
+        if let frontmost = workspace.frontmostApplication,
+           frontmost.bundleIdentifier?.caseInsensitiveCompare(target) == .orderedSame {
+            // Hiding, like ⌘H, makes macOS bring back the previously active app.
+            if !frontmost.hide() { logger.error("dismissing \(target, privacy: .public) failed") }
+            return
+        }
 
         // Prefer the running copy so a second installed copy is never launched alongside it.
         let running = NSRunningApplication.runningApplications(withBundleIdentifier: target).first
