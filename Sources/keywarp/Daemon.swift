@@ -1,4 +1,5 @@
 import AppKit
+import Carbon.HIToolbox
 import KeywarpCore
 
 /// The background process: keeps the registered Shortcuts in step with the config file.
@@ -50,7 +51,8 @@ import KeywarpCore
         }
         let failures = shortcuts.replace(with: installed)
         for (binding, status) in failures {
-            logger.error("cannot register \(binding.shortcut, privacy: .public) for \(binding.target, privacy: .public) (status \(status))")
+            let reason = status == OSStatus(eventHotKeyExistsErr) ? "another app already registered it" : "status \(status)"
+            logger.error("cannot register \(binding.shortcut, privacy: .public) for \(binding.target, privacy: .public): \(reason, privacy: .public)")
         }
         logger.notice("loaded \(self.shortcuts.count) bindings")
     }

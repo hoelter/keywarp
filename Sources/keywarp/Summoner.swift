@@ -12,8 +12,9 @@ import AppKit
         // Bundle identifiers are case-insensitive.
         if let frontmost = workspace.frontmostApplication,
            frontmost.bundleIdentifier?.caseInsensitiveCompare(target) == .orderedSame {
-            // Hiding, like ⌘H, makes macOS bring back the previously active app.
-            if !frontmost.hide() { logger.error("dismissing \(target, privacy: .public) failed") }
+            // Hiding, like ⌘H, lets macOS bring forward another app, usually the previous one.
+            // hide() returning true only means the request was sent.
+            if !frontmost.hide() { logger.error("dismissing \(target, privacy: .public) was refused") }
             return
         }
 

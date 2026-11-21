@@ -55,8 +55,9 @@ import KeywarpCore
             let id = nextID
             nextID += 1
             var ref: EventHotKeyRef?
-            // Exclusive in case the system enforces it. It does not detect a Shortcut another app
-            // already uses: registering Raycast's ⌘1 hotkey succeeds while Raycast holds it.
+            // Exclusive, so another exclusive registration of the same Shortcut fails with
+            // eventHotKeyExistsErr. Not every conflict is detectable: registering Raycast's ⌘1
+            // hotkey succeeds while Raycast holds it.
             let status = RegisterEventHotKey(binding.shortcut.keyCode, Self.carbonModifiers(binding.shortcut.modifiers),
                                              EventHotKeyID(signature: Self.signature, id: id),
                                              GetApplicationEventTarget(), OptionBits(kEventHotKeyExclusive), &ref)

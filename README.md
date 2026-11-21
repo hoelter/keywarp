@@ -1,6 +1,6 @@
 # keywarp
 
-A tiny, headless macOS utility that summons apps with global keyboard shortcuts. Press a shortcut and its app comes to the front, exactly as if you'd clicked its Dock icon; if the app isn't running, it launches. Press it again while the app is in front to hide it and return to the app you were using.
+A tiny, headless macOS utility that summons apps with global keyboard shortcuts. Press a shortcut and its app comes to the front, exactly as if you'd clicked its Dock icon; if the app isn't running, it launches. Press it again while the app is in front to hide it; macOS then brings forward another app, usually the one you were using.
 
 - No Dock icon, no menu bar item, no windows, no overlays.
 - No Accessibility or Input Monitoring permission: shortcuts use `RegisterEventHotKey`.
@@ -43,7 +43,7 @@ keywarp reloads the file as soon as you save it. Run `keywarp check` to validate
   - Keys: `a`–`z`, `0`–`9`, `f1`–`f20`, `` ` `` `-` `=` `[` `]` `\` `;` `'` `,` `.` `/`, `space`, `return`, `tab`, `escape`, `delete`, `forwarddelete`, `home`, `end`, `pageup`, `pagedown`, `left`, `right`, `up`, `down`.
   - Keys are physical positions on a US keyboard layout.
 
-A shortcut belongs to keywarp in every app, so `cmd+1` no longer switches tabs anywhere. keywarp can't tell when another app, such as Raycast, uses the same shortcut, so remove it there first.
+A shortcut belongs to keywarp in every app, so `cmd+1` no longer switches tabs anywhere. keywarp can't always tell when another app uses the same shortcut (it can't with Raycast's hotkeys), so remove it there first.
 
 If the file has any problem, including an unknown key, keywarp rejects all of it and keeps the shortcuts it already has. A binding whose app isn't installed on this Mac is logged and left unbound, so one config works across machines.
 

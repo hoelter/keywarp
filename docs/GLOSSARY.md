@@ -21,5 +21,5 @@ Bringing a Target to the front exactly as a Dock-icon click would, launching it 
 _Avoid_: Activate, toggle, switch, focus
 
 **Dismiss**:
-Hiding a Target that is already frontmost, so the previously active app returns to the front. Pressing a Shortcut Summons its Target, or Dismisses it if it is already frontmost.
+Hiding a Target that is already frontmost; macOS then chooses which app comes forward, usually the previously active one. Pressing a Shortcut Summons its Target, or Dismisses it if it is already frontmost.
 _Avoid_: Toggle off, minimize, close
