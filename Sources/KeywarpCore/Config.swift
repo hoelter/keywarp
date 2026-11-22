@@ -75,9 +75,10 @@ public struct Config: Equatable, Sendable {
             return "missing \"\(key.stringValue)\" at \(path(context))"
         case .typeMismatch(_, let context), .valueNotFound(_, let context):
             return "wrong type at \(path(context))"
-        case .dataCorrupted(let context) where context.underlyingError != nil:
-            return "not valid JSON: \(context.underlyingError!.localizedDescription)"
         case .dataCorrupted(let context):
+            if let underlyingError = context.underlyingError {
+                return "not valid JSON: \(underlyingError.localizedDescription)"
+            }
             return "\(context.debugDescription) at \(path(context))"
         @unknown default:
             return error.localizedDescription

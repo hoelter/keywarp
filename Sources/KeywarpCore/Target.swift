@@ -6,7 +6,7 @@ import Foundation
 public struct Target: Hashable, Sendable, CustomStringConvertible {
     public let bundleIdentifier: String
     /// Lowercasing is exact case folding here because the identifier is ASCII-only.
-    private let folded: String
+    private let caseFoldedIdentifier: String
 
     /// Apple allows only ASCII letters, digits, hyphens and periods in a bundle identifier.
     public init?(bundleIdentifier: String) {
@@ -15,11 +15,11 @@ public struct Target: Hashable, Sendable, CustomStringConvertible {
         }
         guard isValid else { return nil }
         self.bundleIdentifier = bundleIdentifier
-        folded = bundleIdentifier.lowercased()
+        caseFoldedIdentifier = bundleIdentifier.lowercased()
     }
 
-    public static func == (lhs: Target, rhs: Target) -> Bool { lhs.folded == rhs.folded }
-    public func hash(into hasher: inout Hasher) { hasher.combine(folded) }
+    public static func == (lhs: Target, rhs: Target) -> Bool { lhs.caseFoldedIdentifier == rhs.caseFoldedIdentifier }
+    public func hash(into hasher: inout Hasher) { hasher.combine(caseFoldedIdentifier) }
 
     public var description: String { bundleIdentifier }
 }

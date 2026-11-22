@@ -17,7 +17,7 @@ case ["check"]:
 case ["--version"]:
     guard let version = appBundle()?.infoDictionary?["CFBundleShortVersionString"] as? String else {
         printError("keywarp: version unknown, not running from Keywarp.app")
-        exit(1)
+        exit(EXIT_FAILURE)
     }
     print(version)
 default:
@@ -30,20 +30,20 @@ func check() -> Int32 {
     switch ConfigFile.load() {
     case .missing:
         printError("no config at \(path)")
-        return 1
+        return EXIT_FAILURE
     case .unreadable(let error):
         printError("cannot read \(path): \(error.localizedDescription)")
-        return 1
+        return EXIT_FAILURE
     case .invalid(let error):
         printError((["\(path) is invalid:"] + error.problems.map { "  \($0)" }).joined(separator: "\n"))
-        return 1
+        return EXIT_FAILURE
     case .valid(let config):
         print("\(path) is valid:")
         for binding in config.bindings {
             let note = ConfigFile.isInstalled(binding.target) ? "" : "  (not installed)"
             print("  \(binding.shortcut) → \(binding.target)\(note)")
         }
-        return 0
+        return EXIT_SUCCESS
     }
 }
 

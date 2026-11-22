@@ -7,7 +7,14 @@ import KeywarpCore
     private struct Registration {
         let ref: EventHotKeyRef
         let id: UInt32
-        var target: Target
+        var state: State
+
+        enum State {
+            case bound(Target)
+            /// No Binding wants it, but UnregisterEventHotKey failed, so the OS still holds it.
+            /// Retried on every replace(with:).
+            case unreleased
+        }
     }
 
     private let onPress: @MainActor (Target) -> Void
@@ -15,7 +22,12 @@ import KeywarpCore
     // Starts at 1 so a zeroed EventHotKeyID can never match a Registration.
     private var nextID: UInt32 = 1
 
-    var count: Int { registrations.count }
+    var count: Int {
+        registrations.values.count { registration in
+            if case .bound = registration.state { return true }
+            return false
+        }
+    }
 
     init(onPress: @escaping @MainActor (Target) -> Void) {
         self.onPress = onPress
@@ -42,9 +54,9 @@ import KeywarpCore
         let wanted = Set(bindings.map(\.shortcut))
         for (shortcut, registration) in registrations where !wanted.contains(shortcut) {
             let status = UnregisterEventHotKey(registration.ref)
-            // The OS still holds a registration it failed to release, so keep tracking it.
             guard status == noErr else {
                 logger.error("cannot unregister \(shortcut, privacy: .public): status \(status)")
+                registrations[shortcut]!.state = .unreleased
                 continue
             }
             registrations[shortcut] = nil
@@ -52,8 +64,9 @@ import KeywarpCore
 
         var failures: [(binding: Binding, status: OSStatus)] = []
         for binding in bindings {
+            // Includes an unreleased registration: the OS still holds it, so it's reused.
             if registrations[binding.shortcut] != nil {
-                registrations[binding.shortcut]!.target = binding.target
+                registrations[binding.shortcut]!.state = .bound(binding.target)
                 continue
             }
             let id = nextID
@@ -70,7 +83,7 @@ import KeywarpCore
                 continue
             }
             guard let ref else { preconditionFailure("RegisterEventHotKey succeeded without a ref") }
-            registrations[binding.shortcut] = Registration(ref: ref, id: id, target: binding.target)
+            registrations[binding.shortcut] = Registration(ref: ref, id: id, state: .bound(binding.target))
         }
         return failures
     }
@@ -79,8 +92,9 @@ import KeywarpCore
         // The handler already checked the signature, so the id must be one this registry issued.
         precondition(id > 0 && id < nextID, "EventHotKeyID \(id) was never issued")
         // A press queued before replace(with:) unregistered its Shortcut can still arrive.
-        guard let registration = registrations.values.first(where: { $0.id == id }) else { return }
-        onPress(registration.target)
+        guard let registration = registrations.values.first(where: { $0.id == id }),
+              case .bound(let target) = registration.state else { return }
+        onPress(target)
     }
 
     nonisolated private static let signature: OSType = 0x4B57_5250  // "KWRP"
