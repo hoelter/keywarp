@@ -2,8 +2,8 @@ class Keywarp < Formula
   desc "Summon macOS apps with global keyboard shortcuts"
   homepage "https://github.com/hoelter/keywarp"
   # url and sha256 are rewritten by scripts/release.sh.
-  url "https://github.com/hoelter/keywarp/archive/refs/tags/v0.1.3.tar.gz"
-  sha256 "c198d86ed0868c4602e9a83952e6ac4e4c9403cf6a17b400ce08819511f5d308"
+  url "https://github.com/hoelter/keywarp/archive/refs/tags/v0.1.4.tar.gz"
+  sha256 "cf76cb1729d52c584da654a94f4beda7cab28ff467532530e7f2f1709f638801"
   license "MIT"
   head "https://github.com/hoelter/keywarp.git", branch: "main"
 
