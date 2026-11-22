@@ -22,7 +22,7 @@ case ["--version"]:
     print(version)
 default:
     printError(usage)
-    exit(64)
+    exit(EX_USAGE)
 }
 
 func check() -> Int32 {

@@ -1,28 +1,23 @@
 import Foundation
 
-/// One Shortcut paired with one Target, identified by its bundle identifier.
+/// One Shortcut paired with one Target.
 public struct Binding: Equatable, Sendable {
     public let shortcut: Shortcut
-    /// The Target's bundle identifier.
-    public let target: String
+    public let target: Target
 }
 
 /// A fully valid set of Bindings. A file with any problem yields no Config at all.
 public struct Config: Equatable, Sendable {
     public let bindings: [Binding]
 
-    public static let empty = Config(bindings: [])
-
-    private init(bindings: [Binding]) {
-        self.bindings = bindings
-    }
-
     public init(parsing data: Data) throws(ConfigError) {
         let file: File
         do {
             file = try JSONDecoder().decode(File.self, from: data)
-        } catch {
+        } catch let error as DecodingError {
             throw ConfigError(problems: [.malformed(Self.describe(error))])
+        } catch {
+            preconditionFailure("JSONDecoder threw a non-DecodingError: \(error)")
         }
 
         var bindings: [Binding] = []
@@ -36,17 +31,17 @@ public struct Config: Equatable, Sendable {
                 problems.append(.invalidShortcut(index: index, error))
                 shortcut = nil
             }
-            let targetIsValid = Self.isValidBundleIdentifier(entry.app)
-            if !targetIsValid {
+            let target = Target(bundleIdentifier: entry.app)
+            if target == nil {
                 problems.append(.invalidTarget(index: index, entry.app))
             }
-            guard let shortcut, targetIsValid else { continue }
+            guard let shortcut, let target else { continue }
             if let firstIndex = firstIndexByShortcut[shortcut] {
                 problems.append(.duplicateShortcut(index: index, firstIndex: firstIndex, shortcut))
                 continue
             }
             firstIndexByShortcut[shortcut] = index
-            bindings.append(Binding(shortcut: shortcut, target: entry.app))
+            bindings.append(Binding(shortcut: shortcut, target: target))
         }
         guard problems.isEmpty else { throw ConfigError(problems: problems) }
         self.bindings = bindings
@@ -74,15 +69,7 @@ public struct Config: Equatable, Sendable {
         }
     }
 
-    /// Apple allows only ASCII letters, digits, hyphens and periods in a bundle identifier.
-    private static func isValidBundleIdentifier(_ text: String) -> Bool {
-        !text.isEmpty && text.unicodeScalars.allSatisfy {
-            $0.isASCII && (CharacterSet.alphanumerics.contains($0) || $0 == "-" || $0 == ".")
-        }
-    }
-
-    private static func describe(_ error: Error) -> String {
-        guard let error = error as? DecodingError else { return error.localizedDescription }
+    private static func describe(_ error: DecodingError) -> String {
         switch error {
         case .keyNotFound(let key, let context):
             return "missing \"\(key.stringValue)\" at \(path(context))"

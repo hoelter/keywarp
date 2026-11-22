@@ -25,7 +25,7 @@ import Testing
               {"shortcut": "cmd+2", "app": "com.mitchellh.ghostty"}
             ]}
             """)
-        #expect(config.bindings.map(\.target) == ["com.apple.Safari", "com.mitchellh.ghostty"])
+        #expect(config.bindings.map(\.target.bundleIdentifier) == ["com.apple.Safari", "com.mitchellh.ghostty"])
         #expect(config.bindings.map(\.shortcut.description) == ["cmd+1", "cmd+2"])
     }
 

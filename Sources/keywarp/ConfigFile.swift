@@ -30,7 +30,7 @@ enum ConfigFile {
     }
 
     /// Not a config error, so one config can be shared between Macs with different apps installed.
-    static func isInstalled(_ target: String) -> Bool {
-        NSWorkspace.shared.urlForApplication(withBundleIdentifier: target) != nil
+    static func isInstalled(_ target: Target) -> Bool {
+        NSWorkspace.shared.urlForApplication(withBundleIdentifier: target.bundleIdentifier) != nil
     }
 }

@@ -2,22 +2,22 @@ import Carbon.HIToolbox
 import KeywarpCore
 
 /// Registers Shortcuts with RegisterEventHotKey, which needs no Accessibility or
-/// Input Monitoring permission, and reports presses by Target bundle identifier.
+/// Input Monitoring permission, and reports presses by Target.
 @MainActor final class ShortcutRegistry {
     private struct Registration {
         let ref: EventHotKeyRef
         let id: UInt32
-        var target: String
+        var target: Target
     }
 
-    private let onPress: @MainActor (String) -> Void
+    private let onPress: @MainActor (Target) -> Void
     private var registrations: [Shortcut: Registration] = [:]
     // Starts at 1 so a zeroed EventHotKeyID can never match a Registration.
     private var nextID: UInt32 = 1
 
     var count: Int { registrations.count }
 
-    init(onPress: @escaping @MainActor (String) -> Void) {
+    init(onPress: @escaping @MainActor (Target) -> Void) {
         self.onPress = onPress
         var spec = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
         let status = InstallEventHandler(GetApplicationEventTarget(), { _, event, userData in
@@ -42,7 +42,11 @@ import KeywarpCore
         let wanted = Set(bindings.map(\.shortcut))
         for (shortcut, registration) in registrations where !wanted.contains(shortcut) {
             let status = UnregisterEventHotKey(registration.ref)
-            if status != noErr { logger.error("UnregisterEventHotKey failed: \(status)") }
+            // The OS still holds a registration it failed to release, so keep tracking it.
+            guard status == noErr else {
+                logger.error("cannot unregister \(shortcut, privacy: .public): status \(status)")
+                continue
+            }
             registrations[shortcut] = nil
         }
 
@@ -61,17 +65,21 @@ import KeywarpCore
             let status = RegisterEventHotKey(binding.shortcut.keyCode, Self.carbonModifiers(binding.shortcut.modifiers),
                                              EventHotKeyID(signature: Self.signature, id: id),
                                              GetApplicationEventTarget(), OptionBits(kEventHotKeyExclusive), &ref)
-            guard status == noErr, let ref else {
+            guard status == noErr else {
                 failures.append((binding, status))
                 continue
             }
+            guard let ref else { preconditionFailure("RegisterEventHotKey succeeded without a ref") }
             registrations[binding.shortcut] = Registration(ref: ref, id: id, target: binding.target)
         }
         return failures
     }
 
     private func pressed(_ id: UInt32) {
-        guard let registration = registrations.values.first(where: { $0.id == id }) else { return }
+        // The handler already checked the signature, and every id with it came from a Registration.
+        guard let registration = registrations.values.first(where: { $0.id == id }) else {
+            preconditionFailure("hot key \(id) has no Registration")
+        }
         onPress(registration.target)
     }
 
