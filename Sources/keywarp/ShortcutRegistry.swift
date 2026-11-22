@@ -76,10 +76,10 @@ import KeywarpCore
     }
 
     private func pressed(_ id: UInt32) {
-        // The handler already checked the signature, and every id with it came from a Registration.
-        guard let registration = registrations.values.first(where: { $0.id == id }) else {
-            preconditionFailure("hot key \(id) has no Registration")
-        }
+        // The handler already checked the signature, so the id must be one this registry issued.
+        precondition(id > 0 && id < nextID, "EventHotKeyID \(id) was never issued")
+        // A press queued before replace(with:) unregistered its Shortcut can still arrive.
+        guard let registration = registrations.values.first(where: { $0.id == id }) else { return }
         onPress(registration.target)
     }
 
